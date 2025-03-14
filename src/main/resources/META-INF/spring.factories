@@ -1,0 +1,2 @@
+org.springframework.boot.env.EnvironmentPostProcessor=\
+  org.example.finostra.Configuration.EnvironmentPostProcessor.AzureBlobEnvironmentPostProcessor

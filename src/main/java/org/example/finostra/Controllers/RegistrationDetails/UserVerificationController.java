@@ -64,7 +64,7 @@ public class UserVerificationController {
             UserInfo userInfo = UserInfo.builder()
                             .phoneNumber(request.getPhoneNumber())
                             .isPhoneNumberConfirmed(true)
-                            .build();
+            .build();
 
             userInfoService.cacheUserInfo(userInfo);
 
@@ -95,12 +95,9 @@ public class UserVerificationController {
         if (storedCode != null && storedCode.equals(request.getConfirmationCode())) {
             emailService.eraseConfirmationCachedCode(request.getConfirmationCode());
 
-            userInfoService.updateUserInfoCache(
-                    UserInfo.builder()
-                            .email(request.getEmail())
-                            .isEmailConfirmed(true)
-                    .build()
-            );
+//            userInfoService.updateUserInfoOnEmail(
+//
+//            );
 
 
             return ResponseEntity.ok("Email verified successfully");
@@ -115,11 +112,11 @@ public class UserVerificationController {
             @RequestBody @Valid  UserPasswordRegistrationRequest request
     )
     {
-        userInfoService.updateUserInfoCache(
-                UserInfo.builder()
-                        .password(request.getPassword())
-                        .build()
-        );
+//        userInfoService.updateUserInfoCache(
+//                UserInfo.builder()
+//                        .password(request.getPassword())
+//                        .build()
+//        );
 
         userService.linkWithInfo();
 

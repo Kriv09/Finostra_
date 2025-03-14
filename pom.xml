@@ -59,6 +59,12 @@
             <version>1.5.2.Final</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-blob</artifactId>
+            <version>12.14.0</version>
+        </dependency>
+
 
         <dependency>
             <groupId>com.twilio.sdk</groupId>
