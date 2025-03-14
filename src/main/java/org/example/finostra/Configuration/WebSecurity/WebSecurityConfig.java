@@ -32,11 +32,7 @@ public class WebSecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/user/verification/email/register").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/user/verification/email/verify").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/user/verification/password/set").permitAll()
-                .requestMatchers(HttpMethod.POST,"/api/v1/bankCard/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/bankCard/**").permitAll()
-                .requestMatchers(HttpMethod.POST,"/api/v1/transaction/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/transaction/**").permitAll()
-                .requestMatchers("/error").permitAll()
+
                 .anyRequest().authenticated()
                 .and()
                 .httpBasic();

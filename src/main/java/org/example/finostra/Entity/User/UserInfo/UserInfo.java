@@ -49,4 +49,5 @@ public class UserInfo {
     @JoinColumn(name = "user_id")
     private User user;
 
+    private String keyIdentifier;
 }
