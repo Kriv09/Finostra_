@@ -95,9 +95,9 @@ public class UserVerificationController {
         if (storedCode != null && storedCode.equals(request.getConfirmationCode())) {
             emailService.eraseConfirmationCachedCode(request.getConfirmationCode());
 
-//            userInfoService.updateUserInfoOnEmail(
-//
-//            );
+            userInfoService.updateUserInfoOnEmail(
+                "1234"
+            );
 
 
             return ResponseEntity.ok("Email verified successfully");
@@ -122,15 +122,5 @@ public class UserVerificationController {
 
         return ResponseEntity.ok("Password accepted successfully");
     }
-
-
-
-
-
-
-
-
-
-
 
 }
