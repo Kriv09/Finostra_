@@ -49,5 +49,6 @@ public class UserInfo {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @Transient
     private String keyIdentifier;
 }
