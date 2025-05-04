@@ -1,12 +1,12 @@
 package org.example.finostra.Services.User;
 
 import org.example.finostra.Entity.User.User;
-import org.example.finostra.Entity.User.UserInfo.UserInfo;
 import org.example.finostra.Repositories.Role.RoleRepository;
-import org.example.finostra.Repositories.User.UserInfo.UserInfoRepository;
 import org.example.finostra.Repositories.User.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -16,28 +16,52 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final UserInfoRepository userInfoReposiroty;
 
     @Value("${TMP_OBJECTS_USERINFO}")
     private String TMP_OBJECTS_USERINFO;
 
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, RedisTemplate<String, Object> redisTemplate, UserInfoRepository userInfoReposiroty) {
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, RedisTemplate<String, Object> redisTemplate) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.redisTemplate = redisTemplate;
-        this.userInfoReposiroty = userInfoReposiroty;
     }
 
+    public User save(User user) {
+        return userRepository.save(user);
+    }
 
-    public void linkWithInfo() {
-        UserInfo userInfo = (UserInfo) redisTemplate.opsForValue().get(TMP_OBJECTS_USERINFO);
-        User newUser = User.builder()
-                .userInfo(userInfo)
-                .enabled(true)
-                .build();
-        userInfo.setUser(newUser);
-        userInfoReposiroty.save(userInfo);
-        userRepository.save(newUser);
+    public User getById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new UsernameNotFoundException("User with id " + id + " not found"));
+    }
+
+    public User getById(String publicUUID)
+    {
+        return userRepository.getByPublicUUID(publicUUID);
+    }
+
+    public User getByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User with username " + username + " not found"));
+    }
+
+    public User update(User user) {
+        if (!userRepository.existsById(user.getId())) {
+            throw new UsernameNotFoundException("Cannot update. User with id " + user.getId() + " not found");
+        }
+        return userRepository.save(user);
+    }
+
+    public void deleteById(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new UsernameNotFoundException("Cannot delete. User with id " + id + " not found");
+        }
+        userRepository.deleteById(id);
+    }
+
+    public UserDetailsService userDetailsService() {
+        return this::getByUsername;
     }
 }
+
 

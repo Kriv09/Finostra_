@@ -16,4 +16,6 @@ public class UserPasswordRegistrationRequest {
 
     @ValidPassword
     private String password;
+
+    private String publicUUID;
 }

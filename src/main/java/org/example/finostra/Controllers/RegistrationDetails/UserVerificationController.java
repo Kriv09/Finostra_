@@ -6,16 +6,17 @@ import org.example.finostra.Entity.RequestsAndDTOs.Requests.Email.UserEmailVerif
 import org.example.finostra.Entity.RequestsAndDTOs.Requests.Password.UserPasswordRegistrationRequest;
 import org.example.finostra.Entity.RequestsAndDTOs.Requests.PhoneNumber.UserPhoneNumberRegistrationRequest;
 import org.example.finostra.Entity.RequestsAndDTOs.Requests.PhoneNumber.UserPhoneNumberVerificationRequest;
-import org.example.finostra.Entity.User.UserInfo.UserInfo;
+import org.example.finostra.Entity.RequestsAndDTOs.Responses.UserIdResponse;
+import org.example.finostra.Entity.User.User;
 import org.example.finostra.Services.EmailService.EmailService;
 import org.example.finostra.Services.Sms.SmsService;
-import org.example.finostra.Services.User.UserInfo.UserInfoService;
 import org.example.finostra.Services.User.UserService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,15 +30,15 @@ public class UserVerificationController {
 
     private final SmsService smsService;
     private final EmailService emailService;
-    private final UserInfoService userInfoService;
+    private final PasswordEncoder passwordEncoder;
 
 
     @Autowired
-    public UserVerificationController(UserService userService, SmsService smsService, EmailService emailService, UserInfoService userInfoService) {
+    public UserVerificationController(UserService userService, SmsService smsService, EmailService emailService, PasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.smsService = smsService;
         this.emailService = emailService;
-        this.userInfoService = userInfoService;
+        this.passwordEncoder = passwordEncoder;
     }
 
 
@@ -53,24 +54,26 @@ public class UserVerificationController {
 
     @PostMapping("/phoneNumber/verify")
     @Transactional
-    public ResponseEntity<String> verifyPhoneNumber (
+    public ResponseEntity<UserIdResponse> verifyPhoneNumber (
             @RequestBody @Valid UserPhoneNumberVerificationRequest request
     )
     {
         String storedCode = smsService.fetchConfirmationCode(request.getPhoneNumber());
         if (storedCode != null && storedCode.equals(request.getConfirmationCode())) {
             smsService.eraseConfirmationCachedCode(request.getConfirmationCode());
+            User saveUser = userService.save(
+                    User.builder().phoneNumber(request.getPhoneNumber())
+                                    .build()
+            );
 
-            UserInfo userInfo = UserInfo.builder()
-                            .phoneNumber(request.getPhoneNumber())
-                            .isPhoneNumberConfirmed(true)
-            .build();
-
-            userInfoService.cacheUserInfo(userInfo);
-
-            return ResponseEntity.ok("Phone number verified successfully");
+            return ResponseEntity.ok(
+                    UserIdResponse.builder().publicUUID(saveUser.getPublicUUID())
+                            .build()
+            );
         }
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid or expired confirmation code");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(UserIdResponse.builder()
+                .publicUUID("Failed").build()
+        );
     }
 
 
@@ -95,10 +98,10 @@ public class UserVerificationController {
         if (storedCode != null && storedCode.equals(request.getConfirmationCode())) {
             emailService.eraseConfirmationCachedCode(request.getConfirmationCode());
 
-            userInfoService.updateUserInfoOnEmail(
-                "1234"
-            );
+            User fetchedUser = userService.getById(request.getPublicUUIDs());
+            fetchedUser.setEmail(request.getEmail());
 
+            userService.update(fetchedUser);
 
             return ResponseEntity.ok("Email verified successfully");
         }
@@ -112,15 +115,17 @@ public class UserVerificationController {
             @RequestBody @Valid  UserPasswordRegistrationRequest request
     )
     {
-//        userInfoService.updateUserInfoCache(
-//                UserInfo.builder()
-//                        .password(request.getPassword())
-//                        .build()
-//        );
+        User fetchedUser = userService.getById(request.getPublicUUID());
 
-        userService.linkWithInfo();
+        fetchedUser.setPassword(
+                passwordEncoder.encode(request.getPassword())
+        );
+
+        userService.update(fetchedUser);
 
         return ResponseEntity.ok("Password accepted successfully");
     }
+
+
 
 }
