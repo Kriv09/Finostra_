@@ -15,4 +15,5 @@ public class UserEmailRegistrationRequest {
 
     @ValidEmail
     private String email;
+
 }

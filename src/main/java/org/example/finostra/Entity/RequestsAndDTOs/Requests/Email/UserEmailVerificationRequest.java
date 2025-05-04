@@ -15,5 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 public class UserEmailVerificationRequest {
     @ValidEmail
     private String email;
+
     private String confirmationCode;
+
+    private String publicUUIDs;
 }

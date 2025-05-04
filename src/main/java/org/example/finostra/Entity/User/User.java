@@ -1,11 +1,13 @@
 package org.example.finostra.Entity.User;
 
 import org.example.finostra.Entity.User.Roles.Role;
-import org.example.finostra.Entity.User.UserInfo.UserInfo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
+import org.example.finostra.Utils.IdentifierRegistry.IdentifierRegistry;
+import org.example.finostra.Validation.Email.ValidEmail;
+import org.example.finostra.Validation.PhoneNumber.ValidPhoneNumber;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
@@ -28,6 +30,9 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+
+    private String publicUUID;
+
     private boolean enabled;
 
     @ManyToMany(fetch = FetchType.LAZY)
@@ -42,10 +47,9 @@ public class User implements UserDetails {
     private String username;
     private String password;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore
-    private UserInfo userInfo;
-
+    private String email;
+    private String phoneNumber;
+    private String docsLink;
 
 
     @Override
@@ -54,10 +58,10 @@ public class User implements UserDetails {
     }
 
     @Override
-    public String getUsername() { return userInfo.getUsername(); }
+    public String getUsername() { return username; }
 
     @Override
-    public String getPassword() { return userInfo.getPassword(); }
+    public String getPassword() { return password; }
 
     @Override
     public boolean isAccountNonExpired() {
@@ -75,8 +79,9 @@ public class User implements UserDetails {
     }
 
     @PrePersist
-    private void onCreate()
-    {
+    private void onCreate() {
+        if (this.publicUUID == null || this.publicUUID.isEmpty())
+            this.setPublicUUID(IdentifierRegistry.generate());
         this.enabled = true;
     }
 
