@@ -1,17 +1,14 @@
 package org.example.finostra.Entity.User;
 
-import org.example.finostra.Entity.User.Roles.Role;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
+import org.example.finostra.Entity.User.Roles.ROLE;
 import org.example.finostra.Utils.IdentifierRegistry.IdentifierRegistry;
-import org.example.finostra.Validation.Email.ValidEmail;
-import org.example.finostra.Validation.PhoneNumber.ValidPhoneNumber;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.EnumSet;
 import java.util.Set;
 
 @AllArgsConstructor
@@ -35,14 +32,12 @@ public class User implements UserDetails {
 
     private boolean enabled;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<Role> roles = new HashSet<>();
+    @ElementCollection(targetClass = ROLE.class, fetch = FetchType.EAGER)
 
+    @CollectionTable(name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"))
+    @Enumerated(EnumType.STRING)
+    private Set<ROLE> roles = EnumSet.noneOf(ROLE.class);
 
     private String username;
     private String password;
@@ -83,6 +78,7 @@ public class User implements UserDetails {
         if (this.publicUUID == null || this.publicUUID.isEmpty())
             this.setPublicUUID(IdentifierRegistry.generate());
         this.enabled = true;
+
     }
 
 
