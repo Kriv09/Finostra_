@@ -3,6 +3,8 @@ package org.example.finostra.Utils.BankCards;
 import java.time.LocalDate;
 import java.util.Random;
 
+
+
 public class BankCardUtils {
     private static final String COUNTRY_CODE = "UA";
     private static final String BANK_IDENTIFIER = "300000";
@@ -55,12 +57,10 @@ public class BankCardUtils {
                 break;
         }
 
-        // Luhn algorithm
         while(cardNumber.length() < cardNumberLength - 1) {
             cardNumber.append(RANDOM.nextInt(10));
         }
 
-        // Starting to check control digit, the last number
         int controlDigit = getControlDigit(cardNumber.toString());
 
         cardNumber.append(controlDigit);
@@ -72,7 +72,6 @@ public class BankCardUtils {
         int controlDigit;
         int sum = 0;
 
-        // Finding sum
         for(short i = 0; i < numbers.length(); i++) {
             int num = Integer.parseInt(numbers.substring(i, i + 1));
             if(i % 2 == 0) {

@@ -1,29 +1,21 @@
 package org.example.finostra.Services.User;
 
 import org.example.finostra.Entity.User.User;
-import org.example.finostra.Repositories.Role.RoleRepository;
 import org.example.finostra.Repositories.User.UserRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final RedisTemplate<String, Object> redisTemplate;
 
-    @Value("${TMP_OBJECTS_USERINFO}")
-    private String TMP_OBJECTS_USERINFO;
 
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, RedisTemplate<String, Object> redisTemplate) {
+    public UserService(UserRepository userRepository, RedisTemplate<String, Object> redisTemplate) {
         this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.redisTemplate = redisTemplate;
     }
 
     public User save(User user) {
@@ -61,6 +53,11 @@ public class UserService {
 
     public UserDetailsService userDetailsService() {
         return this::getByUsername;
+    }
+
+    public User loadByPhone(String phoneNumber) {
+        return userRepository.getByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new UsernameNotFoundException("User with phone number " + phoneNumber + " not found"));
     }
 }
 

@@ -50,7 +50,6 @@ public class BankCardService {
         this.redisTemplate = redisTemplate;
     }
 
-    // Temporary, it shouldn't return all cards due to privacy, I think
     public List<BankCardDTO> fetchAllBankCards() {
         return bankCardRepository.findAll().stream()
                 .map(bankCardMapper::toDTO)

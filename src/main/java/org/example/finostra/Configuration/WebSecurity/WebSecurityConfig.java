@@ -1,5 +1,6 @@
 package org.example.finostra.Configuration.WebSecurity;
 
+import org.example.finostra.Configuration.WebSecurity.Filters.JwtAuthFilter;
 import org.example.finostra.Services.User.UserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +17,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 import java.util.List;
+
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
@@ -26,14 +29,19 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 public class WebSecurityConfig {
 
     private final UserService userService;
+    private final JwtAuthFilter jwtAuthFilter;
 
-    public WebSecurityConfig(UserService userService) {
+    public WebSecurityConfig(UserService userService, JwtAuthFilter jwtAuthFilter) {
         this.userService = userService;
+        this.jwtAuthFilter = jwtAuthFilter;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .csrf().disable()
+                .sessionManagement().sessionCreationPolicy(STATELESS)
+                .and()
                 .authorizeHttpRequests()
                 .requestMatchers("/v3/api-docs", "/v3/api-docs/**",
                         "/swagger-ui/**", "/swagger-ui.html").permitAll()
@@ -41,8 +49,10 @@ public class WebSecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/user/verification/**").permitAll()
                 .anyRequest().permitAll()
+
                 .and()
                 .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 
 
                 .csrf().disable()
