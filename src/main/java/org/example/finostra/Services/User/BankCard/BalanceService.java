@@ -47,7 +47,6 @@ public class BalanceService {
         Balance balance = Balance.builder()
                 .amount(BigDecimal.valueOf(0))
                 .currency(currency)
-                .lastUpdated(LocalDateTime.now())
                 .bankCard(bankCard.get())
                 .build();
 
@@ -63,7 +62,6 @@ public class BalanceService {
         Balance updatedBalance = balance.get();
 
         updatedBalance.setAmount(updatedBalance.getAmount().add(newAmount));
-        updatedBalance.setLastUpdated(LocalDateTime.now());
 
         balanceRepository.save(updatedBalance);
     }

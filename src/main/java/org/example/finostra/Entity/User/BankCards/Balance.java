@@ -29,9 +29,6 @@ public class Balance {
     @Enumerated(EnumType.STRING)
     private CurrencyType currency;
 
-    @Column(nullable = false)
-    private LocalDateTime lastUpdated;
-
     @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "bank_card_id")
     private BankCard bankCard;

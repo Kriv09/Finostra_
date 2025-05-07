@@ -30,7 +30,8 @@ public class User implements UserDetails {
 
     private String publicUUID;
 
-    private boolean enabled;
+    private Boolean locked;
+    private Boolean expired;
 
     @ElementCollection(targetClass = ROLE.class, fetch = FetchType.EAGER)
 
@@ -60,25 +61,25 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonExpired() {
-        return true;
+        return expired;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return locked;
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return true;
+        return expired;
     }
 
     @PrePersist
     private void onCreate() {
         if (this.publicUUID == null || this.publicUUID.isEmpty())
             this.setPublicUUID(IdentifierRegistry.generate());
-        this.enabled = true;
-
+        this.expired = false;
+        this.locked = false;
     }
 
 

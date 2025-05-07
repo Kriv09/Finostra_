@@ -12,12 +12,6 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class CreateBankCardRequest {
-    @NotNull(message = "userId cannot be null")
-    private Long userId;
-
-    @NotBlank(message = "Owner name cannot be blank")
-    private String ownerName;
-
-    @NotNull(message = "Currency cannot be null")
+    private String publicUUID;
     private CurrencyType currency;
 }

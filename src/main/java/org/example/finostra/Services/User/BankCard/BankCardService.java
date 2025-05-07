@@ -1,13 +1,16 @@
 package org.example.finostra.Services.User.BankCard;
 
+import jakarta.transaction.Transactional;
 import org.example.finostra.Entity.RequestsAndDTOs.DTO.BankCard.BankCardDTO;
 import org.example.finostra.Entity.RequestsAndDTOs.Requests.BankCard.CreateBankCardRequest;
+import org.example.finostra.Entity.RequestsAndDTOs.Responses.GetBankCardResponse;
 import org.example.finostra.Entity.User.BankCards.BankCard;
 import org.example.finostra.Entity.User.BankCards.CVVCode;
 import org.example.finostra.Entity.User.BankCards.CurrencyType;
 import org.example.finostra.Entity.User.User;
 import org.example.finostra.Exceptions.UserCardNotFoundException;
 import org.example.finostra.Exceptions.UserNotFoundException;
+import org.example.finostra.Services.User.UserService;
 import org.example.finostra.Utils.Mappers.BankCard.BankCardMapper;
 import org.example.finostra.Repositories.User.BankCard.BankCardRepository;
 import org.example.finostra.Repositories.User.UserRepository;
@@ -15,6 +18,7 @@ import org.example.finostra.Utils.BankCards.BankCardUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -31,6 +35,7 @@ public class BankCardService {
     private final BankCardMapper bankCardMapper;
     private final BalanceService balanceService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final UserService userService;
 
 
     @Value("${TMP_OBJECTS_SECURITYCODE}")
@@ -42,12 +47,13 @@ public class BankCardService {
     @Autowired
     public BankCardService(BankCardRepository bankCardRepository, UserRepository userRepository,
                            RedisTemplate<String, Object> redisTemplate, BankCardMapper bankCardMapper,
-                           BalanceService balanceService) {
+                           BalanceService balanceService, UserService userService) {
         this.bankCardRepository = bankCardRepository;
         this.userRepository = userRepository;
         this.bankCardMapper = bankCardMapper;
         this.balanceService = balanceService;
         this.redisTemplate = redisTemplate;
+        this.userService = userService;
     }
 
     public List<BankCardDTO> fetchAllBankCards() {
@@ -82,17 +88,15 @@ public class BankCardService {
     }
 
 
-    public void createBankCard(CreateBankCardRequest createBankCardRequest) {
-        Optional<User> user = userRepository.findById(createBankCardRequest.getUserId());
-        if (user.isEmpty()) {
-            throw new UserNotFoundException("User not found with id " + createBankCardRequest.getUserId());
-        }
 
-        String ownerName = createBankCardRequest.getOwnerName();
+    @Transactional
+    public void createBankCard(CreateBankCardRequest createBankCardRequest) {
+        User user = userRepository.getByPublicUUID(createBankCardRequest.getPublicUUID());
+
+
         String cardNumber = BankCardUtils.generateCardNumber();
         LocalDate expirationDate = BankCardUtils.generateExpirationDate(5);
-        String IBAN = BankCardUtils.generateIBAN(user.get().getId());
-        User userForBankCard = user.get();
+        String IBAN = BankCardUtils.generateIBAN(user.getId());
         Boolean active = true;
         CurrencyType currency = createBankCardRequest.getCurrency();
 
@@ -102,18 +106,17 @@ public class BankCardService {
             }
 
             if (bankCardRepository.existsByIBAN(IBAN)) {
-                IBAN = BankCardUtils.generateIBAN(user.get().getId());
+                IBAN = BankCardUtils.generateIBAN(user.getId());
             }
 
         } while (bankCardRepository.existsByCardNumber(cardNumber)
                 || bankCardRepository.existsByIBAN(IBAN));
 
         BankCard bankCard = BankCard.builder()
-                .ownerName(ownerName)
                 .cardNumber(cardNumber)
                 .expiryDate(expirationDate)
                 .IBAN(IBAN)
-                .user(userForBankCard)
+                .user(user)
                 .active(active)
                 .build();
 
@@ -165,5 +168,20 @@ public class BankCardService {
         redisTemplate.expire(redisKey, CVV_LIFETIME_MINUTES, TimeUnit.MINUTES);
 
         return cvvCode;
+    }
+
+
+    @Transactional
+    public List<GetBankCardResponse.CardInfo> fetchBankCardsByUserId(String userPublicUUID, CurrencyType currency) {
+        User user = userService.getById(userPublicUUID);
+        List<BankCard> allCard =
+                bankCardRepository.findAllByUserPublicUUIDAndCurrency(user.getPublicUUID(), currency);
+        List<GetBankCardResponse.CardInfo> cardInfoList = allCard.stream()
+                .map(card -> new GetBankCardResponse.CardInfo(
+                        card.getCardNumber(),
+                        this.fetchOrGenerateCVV(card.getId()).getCvv(),
+                        card.getExpiryDate()
+                )).collect(Collectors.toList());
+        return cardInfoList;
     }
 }
