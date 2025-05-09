@@ -45,14 +45,18 @@ public class BankCard {
     private Balance balance;
 
     private String publicUUID;
+    private String code;
+
 
     @PrePersist
     public void setUp()
     {
         if(this.publicUUID == null || this.publicUUID.isEmpty())
             this.publicUUID = IdentifierRegistry.generate();
+        if(this.code == null || this.code.isEmpty())
+            this.code = IdentifierRegistry.generatePasscode();
     }
 
-    private String code;
+
 
 }
