@@ -1,5 +1,6 @@
 package org.example.finostra.Services.Sms;
 
+import jakarta.transaction.Transactional;
 import org.example.finostra.Utils.VerificationCodeGenerator.VerificationCodeGenerator;
 import com.twilio.Twilio;
 import com.twilio.rest.api.v2010.account.Message;
@@ -42,6 +43,8 @@ public class SmsService {
         Twilio.init(accountSid, authToken);
     }
 
+
+    @Transactional
     public void sendConfirmationCode(String phoneNumber) {
 
         String confirmationCode = verificationCodeGenerator.generatePhoneNumberVerificationCode(LocalDate.now().toString() + phoneNumber);

@@ -15,7 +15,7 @@ import java.util.Properties;
 public class AzureBlobEnvironmentPostProcessor implements EnvironmentPostProcessor {
 
     private static final String CONNECTION_STRING = System.getenv("AZURE_STORAGE_CONNECTION_STRING");
-    private static final String CONTAINER_NAME = "props";
+    private static final String CONTAINER_NAME = "config-files";
     private static final String BLOB_NAME = "application.properties";
 
     @Override
