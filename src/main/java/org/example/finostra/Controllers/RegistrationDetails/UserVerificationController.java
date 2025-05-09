@@ -169,7 +169,7 @@ public class UserVerificationController {
 
         User user = userService.loadByPhone(req.getPhoneNumber());
 
-        String jwt = jwtService.generate(user);
+        String jwt = jwtService.generate(user, user.getPublicUUID());
 
         ResponseCookie cookie = ResponseCookie.from("access_token", jwt)
                 .httpOnly(true)

@@ -1,5 +1,6 @@
 package org.example.finostra.Services.User.JWT;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -16,15 +17,16 @@ import java.util.Date;
 @RequiredArgsConstructor
 public class JwtService {
 
-    @Value("${jwt.secret}")   private String secret;
-    @Value("${jwt.exp-min}")  private long expMinutes;
+    @Value("${jwt.secret}")      private String secret;
+    @Value("${jwt.exp-min}")     private long   expMinutes;
 
-    public String generate(UserDetails user) {
+    public String generate(UserDetails user, String publicUuid) {
         Date now = new Date();
-        Date exp = Date.from(now.toInstant().plus(Duration.ofMinutes(expMinutes)));
+        Date exp = Date.from(now.toInstant().plusSeconds(expMinutes * 60));
 
         return Jwts.builder()
-                .setSubject(user.getUsername())
+                .setSubject(publicUuid)
+                .claim("usr", user.getUsername())
                 .claim("roles", user.getAuthorities().stream()
                         .map(GrantedAuthority::getAuthority)
                         .toList())
@@ -34,12 +36,11 @@ public class JwtService {
                 .compact();
     }
 
-    public String extractUsername(String token) {
+    public Claims parse(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(secret.getBytes())
+                .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes()))
                 .build()
                 .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+                .getBody();
     }
 }
