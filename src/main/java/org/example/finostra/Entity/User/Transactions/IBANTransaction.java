@@ -3,17 +3,26 @@ package org.example.finostra.Entity.User.Transactions;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.Entity;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
+import org.example.finostra.Entity.User.BankCards.BankCard;
 
-@Data
-@Builder
+@SuperBuilder
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
 public class IBANTransaction extends Transaction {
-    private String receiverIBAN;
-    private String senderIBAN;
+
+    @ManyToOne
+    @JoinColumn(name = "receiver_iban", referencedColumnName = "IBAN")
+    private BankCard receiver;
+
+    @ManyToOne
+    @JoinColumn(name = "sender_iban", referencedColumnName = "IBAN")
+    private BankCard sender;
+
 }

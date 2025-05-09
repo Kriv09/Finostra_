@@ -28,7 +28,7 @@ public interface CardToCardRepository extends JpaRepository<CardToCardTransactio
     SELECT c FROM CardToCardTransaction c 
     WHERE c.receiverId = :cardId OR c.senderId = :cardId
     """)
-    Iterable<CardToCardTransaction> findCardToCardTransactionByCardId(@Param("cardId") Long cardId);
+    List<CardToCardTransaction> findCardToCardTransactionByCardId(@Param("cardId") Long cardId);
 
 
 

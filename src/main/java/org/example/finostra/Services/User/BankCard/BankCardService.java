@@ -79,6 +79,14 @@ public class BankCardService {
         return bankCardMapper.toDTO(bankCard.get());
     }
 
+    public BankCardDTO fetchBankCardByIBAN(String IBAN) {
+        Optional<BankCard> bankCard = bankCardRepository.findByIBAN(IBAN);
+        if (bankCard.isEmpty()) {
+            throw new UserCardNotFoundException("BankCard not found");
+        }
+        return bankCardMapper.toDTO(bankCard.get());
+    }
+
     public List<BankCardDTO> fetchBankCardsByUserId(Long userId) {
         List<BankCard> bankCards = bankCardRepository.findByUserId(userId);
 

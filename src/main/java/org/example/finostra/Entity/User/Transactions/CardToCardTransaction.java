@@ -2,8 +2,11 @@ package org.example.finostra.Entity.User.Transactions;
 
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.example.finostra.Entity.User.BankCards.BankCard;
 
 @SuperBuilder
 @Entity
@@ -13,9 +16,13 @@ public class CardToCardTransaction extends Transaction {
 
     @Getter
     @Setter
-    private Long senderId;
+    @ManyToOne
+    @JoinColumn(name = "sender_id")
+    private BankCard sender;
 
     @Getter
     @Setter
-    private Long receiverId;
+    @ManyToOne
+    @JoinColumn(name = "receiver_id")
+    private BankCard receiver;
 }
