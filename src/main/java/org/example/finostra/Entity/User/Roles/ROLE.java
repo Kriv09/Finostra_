@@ -11,8 +11,8 @@ public enum ROLE implements GrantedAuthority {
     ADMIN;
 
     @Override
-    public String getAuthority() {          // Spring Security will use this
-        return name();                      // → "REGULAR_USER", "ADMIN"
+    public String getAuthority() {
+        return name();
     }
 }
 
