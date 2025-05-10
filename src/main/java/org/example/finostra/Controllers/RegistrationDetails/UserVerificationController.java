@@ -60,10 +60,12 @@ public class UserVerificationController {
     @Transactional
     public ResponseEntity<String> registerPhoneNumber (
             @RequestBody @Valid UserPhoneNumberRegistrationRequest request
-    )
-    {
-        smsService.sendConfirmationCode(request.getPhoneNumber());
-        return ResponseEntity.ok("Confirmation code was sent successfully");
+    ) {
+        if (!userService.existsByPhoneNumber(request.getPhoneNumber())) {
+            smsService.sendConfirmationCode(request.getPhoneNumber());
+            return ResponseEntity.ok("Confirmation code was sent successfully");
+        }
+        return ResponseEntity.status(HttpStatus.CONFLICT).body("Phone number already registered");
     }
 
     @PostMapping("/phoneNumber/verify")
@@ -97,8 +99,11 @@ public class UserVerificationController {
             @RequestBody @Valid UserEmailRegistrationRequest request
     )
     {
-        emailService.sendEmailVerificationCode(request.getEmail());
-        return ResponseEntity.ok("Confirmation code was sent successfully");
+        if(!userService.existsByEmail(request.getEmail())) {
+            emailService.sendEmailVerificationCode(request.getEmail());
+            return ResponseEntity.ok("Confirmation code was sent successfully");
+        }
+        return ResponseEntity.status(HttpStatus.CONFLICT).body("Email already registered");
     }
 
 

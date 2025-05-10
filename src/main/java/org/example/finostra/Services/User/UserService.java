@@ -59,6 +59,14 @@ public class UserService {
         return userRepository.getByPhoneNumber(phoneNumber)
                 .orElseThrow(() -> new UsernameNotFoundException("User with phone number " + phoneNumber + " not found"));
     }
+
+    public boolean existsByPhoneNumber(String phoneNumber) {
+        return userRepository.existsByPhoneNumber(phoneNumber);
+    }
+
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
 }
 
 
