@@ -26,7 +26,6 @@ public class CardToCardRequest {
     @Pattern(regexp = "^\\d{3}$", message = "CVV must be 3 digits")
     private String CVV;
 
-
     @NotBlank(message = "Receiver card number cannot be blank")
     private String receiverCardNumber;
 

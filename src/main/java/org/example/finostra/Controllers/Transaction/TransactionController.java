@@ -1,7 +1,13 @@
 package org.example.finostra.Controllers.Transaction;
 
+import org.example.finostra.Entity.RequestsAndDTOs.Responses.GetTransactionsResponse;
+import org.example.finostra.Entity.User.User;
+import org.example.finostra.Services.User.UserService;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.example.finostra.Entity.RequestsAndDTOs.DTO.Transaction.CardToCardTransactionDTO;
 import org.example.finostra.Entity.RequestsAndDTOs.DTO.Transaction.IbanTransactionDTO;
+import org.example.finostra.Entity.RequestsAndDTOs.DTO.Transaction.TransactionDTO;
 import org.example.finostra.Entity.RequestsAndDTOs.Requests.Transaction.CardToCardRequest;
 import org.example.finostra.Entity.RequestsAndDTOs.Requests.Transaction.IbanRequest;
 import org.example.finostra.Services.User.Transaction.TransactionService;
@@ -19,47 +25,65 @@ import java.util.List;
 public class TransactionController {
 
     private final TransactionService transactionService;
+    private final UserService userService;
 
     @Autowired
-    public TransactionController(TransactionService transactionService) {
+    public TransactionController(TransactionService transactionService, UserService userService) {
         this.transactionService = transactionService;
+        this.userService = userService;
     }
 
-    @GetMapping("/cardToCard/bankCard/{id}")
+    @GetMapping("/cardToCardTransaction/bankCard")
     @Transactional
-    public ResponseEntity<List<CardToCardTransactionDTO>> getAllCardToCardTransferByBankCardId(@PathVariable Long id) {
-        return ResponseEntity.ok(transactionService.fetchAllCardToCardByCardId(id));
+    public ResponseEntity<List<CardToCardTransactionDTO>> getAllCardToCardTransferByCardPublicUUID(@RequestParam String bankCardUUID) {
+        var transactions = transactionService.fetchAllCardToCardByCardPublicUUID(bankCardUUID);
+        return ResponseEntity.ok(transactions);
     }
 
-    @GetMapping("/cardToCard/{id}")
+    @GetMapping("/ibanTransaction/bankCard")
     @Transactional
-    public ResponseEntity<CardToCardTransactionDTO> getCardToCardTransferById(@PathVariable Long id) {
-        return ResponseEntity.ok(transactionService.fetchCardToCardById(id));
+    public ResponseEntity<List<IbanTransactionDTO>> getDetailsTransferByIbanPublicUUID(@RequestParam String bankCardUUID) {
+        var transactions = transactionService.fetchAllIbanByCardPublicUUID(bankCardUUID);
+        return ResponseEntity.ok(transactions);
     }
 
-    @GetMapping("/detailsTransfer/{id}")
+    @GetMapping
     @Transactional
-    public ResponseEntity<IbanTransactionDTO> getDetailTransferById(@PathVariable Long id) {
-        return ResponseEntity.ok(transactionService.fetchIbanById(id));
+    public ResponseEntity<GetTransactionsResponse> getAllTransactions(Authentication auth) {
+
+        if (auth == null || auth.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        User user = userService.getById(auth.getName());
+
+        var transactions = transactionService.fetchAllTransactionsByUserId(user.getId());
+
+        return ResponseEntity.ok(
+                GetTransactionsResponse.builder().transactions(transactions).build()
+        );
     }
 
-    @GetMapping("/detailsTransfer/bankCard/{iban}")
+    @PostMapping("/cardToCardTransfer")
     @Transactional
-    public ResponseEntity<List<IbanTransactionDTO>> getDetailsTransferByIban(@PathVariable String iban) {
-        return ResponseEntity.ok(transactionService.fetchAllIbanTransactionsByCardIban(iban));
-    }
-
-    @PostMapping("/cardToCard")
-    @Transactional
-    public ResponseEntity<String> performCardToCardTransfer(@RequestBody @Valid CardToCardRequest cardToCardRequest) {
-        transactionService.performCardToCardTransaction(cardToCardRequest);
+    public ResponseEntity<String> performCardToCardTransfer(@RequestBody @Valid CardToCardRequest cardToCardRequest, Authentication auth) {
+        if (auth == null || auth.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        User user = userService.getById(auth.getName());
+        transactionService.performCardToCardTransaction(cardToCardRequest, user.getId());
         return ResponseEntity.ok("Successfully transferred");
     }
 
-    @PostMapping("/detailsTransfer")
+    @PostMapping("/ibanTransfer")
     @Transactional
-    public ResponseEntity<String> detailsTransfer(@RequestBody @Valid IbanRequest ibanRequest) {
-        transactionService.performIbanTransaction(ibanRequest);
+    public ResponseEntity<String> performIbanTransfer(@RequestBody @Valid IbanRequest ibanRequest, Authentication auth) {
+        if (auth == null || auth.getName() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        User user = userService.getById(auth.getName());
+
+        transactionService.performIbanTransaction(ibanRequest, user.getId());
         return ResponseEntity.ok("Successfully details transferred");
     }
 
