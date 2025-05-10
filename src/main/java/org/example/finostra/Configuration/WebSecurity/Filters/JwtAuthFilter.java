@@ -32,38 +32,72 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain chain)
             throws ServletException, IOException {
 
-        String jwt = extractToken(req);
-        if (jwt != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        String jwt = extract(req, "access_token");
+        Claims claims = null;
+
+        if (jwt != null) {
             try {
-                Claims claims = jwtService.parse(jwt);
-                String uuid  = claims.getSubject();
-                String login = claims.get("usr", String.class);
-
-                UserDetails user = uds.loadUserByUsername(login);
-
-                UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(
-                                uuid,
-                                null,
-                                user.getAuthorities());
-
-                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
-                SecurityContextHolder.getContext().setAuthentication(auth);
-
-            } catch (JwtException ignored) {
-                System.err.println("Invalid or expired JWT");
+                claims = jwtService.parse(jwt);
+            }
+            catch (io.jsonwebtoken.ExpiredJwtException ignored) {  }
+            catch (io.jsonwebtoken.JwtException ex) {
+                jwt = null;
             }
         }
+
+        if (claims == null) {
+            String refresh = extract(req, "refresh_token");
+            if (refresh != null) {
+                try {
+                    Claims rClaims = jwtService.parseRefresh(refresh);
+                    String uuid = rClaims.getSubject();
+                    String login = rClaims.get("usr", String.class);
+
+                    UserDetails user = uds.loadUserByUsername(login);
+
+                    String newAccess = jwtService.generate(user, uuid);
+                    addCookie(res, "access_token", newAccess, -1);
+                    claims = jwtService.parse(newAccess);
+                } catch (io.jsonwebtoken.JwtException ignored) {
+                    clearCookies(res);
+                }
+            }
+        }
+
+        if (claims != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            String uuid = claims.getSubject();
+            String login = claims.get("usr", String.class);
+
+            UserDetails user = uds.loadUserByUsername(login);
+            var auth = new UsernamePasswordAuthenticationToken(
+                    uuid, null, user.getAuthorities());
+            auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
+            SecurityContextHolder.getContext().setAuthentication(auth);
+        }
+
         chain.doFilter(req, res);
     }
 
-    private String extractToken(HttpServletRequest req) {
+
+    private String extract(HttpServletRequest req, String name) {
         if (req.getCookies() != null) {
-            for (Cookie c : req.getCookies()) {
-                if ("access_token".equals(c.getName())) return c.getValue();
-            }
+            for (Cookie c : req.getCookies())
+                if (name.equals(c.getName())) return c.getValue();
         }
-        String hdr = req.getHeader("Authorization");
-        return hdr != null && hdr.startsWith("Bearer ") ? hdr.substring(7) : null;
+        return null;
+    }
+
+    private void addCookie(HttpServletResponse res, String name, String val, int maxAge) {
+        Cookie c = new Cookie(name, val);
+        c.setHttpOnly(true);
+        c.setSecure(true);
+        c.setPath("/");
+        c.setMaxAge(maxAge);
+        res.addCookie(c);
+    }
+
+    private void clearCookies(HttpServletResponse res) {
+        addCookie(res, "access_token", "", 0);
+        addCookie(res, "refresh_token", "", 0);
     }
 }

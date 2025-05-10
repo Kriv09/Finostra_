@@ -169,18 +169,28 @@ public class UserVerificationController {
 
         User user = userService.loadByPhone(req.getPhoneNumber());
 
-        String jwt = jwtService.generate(user, user.getPublicUUID());
+        String access  = jwtService.generate(user, user.getPublicUUID());
+        String refresh = jwtService.generateRefresh(user, user.getPublicUUID());
 
-        ResponseCookie cookie = ResponseCookie.from("access_token", jwt)
+        ResponseCookie accessCookie  = ResponseCookie.from("access_token", access)
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
-                .maxAge(Duration.ofMinutes(120))
+                .maxAge(Duration.ofMinutes(15))
+                .sameSite("Strict")
+                .build();
+
+        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refresh)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(Duration.ofDays(7))
                 .sameSite("Strict")
                 .build();
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                 .body(new LoginResponse("Login successful"));
     }
 
