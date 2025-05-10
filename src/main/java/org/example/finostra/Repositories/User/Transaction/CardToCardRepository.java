@@ -2,6 +2,7 @@ package org.example.finostra.Repositories.User.Transaction;
 
 import org.example.finostra.Entity.RequestsAndDTOs.Requests.Transaction.CardToCardRequest;
 import org.example.finostra.Entity.User.Transactions.CardToCardTransaction;
+import org.example.finostra.Entity.User.Transactions.IBANTransaction;
 import org.example.finostra.Entity.User.Transactions.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -30,6 +31,20 @@ public interface CardToCardRepository extends JpaRepository<CardToCardTransactio
     """)
     List<CardToCardTransaction> findCardToCardTransactionByCardId(@Param("cardId") Long cardId);
 
+    @Query("""
+            SELECT c 
+            FROM CardToCardTransaction c
+            WHERE c.receiver.publicUUID = :publicUUID OR c.sender.publicUUID = :publicUUID
+            """)
+    List<CardToCardTransaction> findCardToCardTransactionsByCardPublicUUID(@Param("publicUUID") String publicUUID);
+
+
+    @Query("""
+        SELECT c
+        FROM CardToCardTransaction c
+        WHERE c.sender.user.id = :userId OR c.receiver.id = :userId
+    """)
+    List<CardToCardTransaction> findCardToCardTransactionsByUserId(@Param("userId") Long userId);
 
 
 }

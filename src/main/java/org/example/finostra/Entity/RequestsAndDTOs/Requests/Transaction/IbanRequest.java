@@ -1,13 +1,11 @@
 package org.example.finostra.Entity.RequestsAndDTOs.Requests.Transaction;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.*;
 import org.example.finostra.Entity.User.BankCards.CurrencyType;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -17,8 +15,8 @@ import java.math.BigDecimal;
 @Builder
 public class IbanRequest {
 
-    @NotNull(message = "Sender card id cannot be null")
-    private Long senderBankCardId;
+    @NotBlank(message = "Sender card number cannot be blank")
+    private String senderCardNumber;
 
     @NotBlank(message = "Receiver iban cannot be blank")
     private String receiverIban;

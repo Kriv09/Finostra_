@@ -4,10 +4,13 @@ import org.example.finostra.Entity.RequestsAndDTOs.DTO.BankCard.BalanceDTO;
 import org.example.finostra.Entity.RequestsAndDTOs.DTO.BankCard.BankCardDTO;
 import org.example.finostra.Entity.RequestsAndDTOs.DTO.Transaction.CardToCardTransactionDTO;
 import org.example.finostra.Entity.RequestsAndDTOs.DTO.Transaction.IbanTransactionDTO;
+import org.example.finostra.Entity.RequestsAndDTOs.DTO.Transaction.TransactionDTO;
 import org.example.finostra.Entity.RequestsAndDTOs.Requests.Transaction.CardToCardRequest;
 import org.example.finostra.Entity.RequestsAndDTOs.Requests.Transaction.IbanRequest;
+import org.example.finostra.Entity.RequestsAndDTOs.Responses.GetTransactionsResponse;
 import org.example.finostra.Entity.User.Transactions.CardToCardTransaction;
 import org.example.finostra.Entity.User.Transactions.IBANTransaction;
+import org.example.finostra.Entity.User.Transactions.Transaction;
 import org.example.finostra.Exceptions.UserBadRequestException;
 import org.example.finostra.Exceptions.UserCardBadRequestException;
 import org.example.finostra.Exceptions.UserNotFoundException;
@@ -24,6 +27,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -54,40 +59,59 @@ public class TransactionService {
     }
 
     @Transactional
-    public List<CardToCardTransactionDTO> fetchAllCardToCardByCardId(Long id) {
-        var transactions = cardToCardRepository.findCardToCardTransactionByCardId(id);
+    public List<CardToCardTransactionDTO> fetchAllCardToCardByCardPublicUUID(String cardPublicUUID) {
+        var transactions = cardToCardRepository.findCardToCardTransactionsByCardPublicUUID(cardPublicUUID);
 
         return transactions.stream()
                 .map(cardToCardMapper::toDTO)
                 .collect(Collectors.toList());
     }
-
     @Transactional
-    public CardToCardTransactionDTO fetchCardToCardById(Long id) {
-        var transaction = cardToCardRepository.findCardToCardTransactionById(id)
-                .orElseThrow(() -> new UserNotFoundException("Transaction not found"));
-        return cardToCardMapper.toDTO(transaction);
-    }
+    public List<IbanTransactionDTO> fetchAllIbanByCardPublicUUID(String cardPublicUUID) {
+        var transactions = ibanRepository.findIBANTransactionsByCardPublicUUID(cardPublicUUID);
 
-    @Transactional
-    public IbanTransactionDTO fetchIbanById(Long id) {
-        var transaction = ibanRepository.findIbanTransactionById(id)
-                .orElseThrow(() -> new UserNotFoundException("Transaction not found"));
-        return ibanMapper.toDTO(transaction);
-    }
-
-    @Transactional
-    public List<IbanTransactionDTO> fetchAllIbanTransactionsByCardIban(String iban) {
-        var transactions = ibanRepository.findIbanTransactionsByCardIban(iban.trim().toUpperCase());
         return transactions.stream()
                 .map(ibanMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public void performCardToCardTransaction(CardToCardRequest cardToCardRequest) {
+    public List<GetTransactionsResponse.TransactionInfo> fetchAllTransactionsByUserId(Long userId) {
 
-        BankCardDTO sender = bankCardService.fetchBankCardByCardNumber(cardToCardRequest.getSenderCardNumber());
+        var cardToCard = cardToCardRepository.findCardToCardTransactionsByUserId(userId);
+        var iban = ibanRepository.findIBANTransactionsByUserId(userId);
+
+        List<GetTransactionsResponse.TransactionInfo> transactions = new ArrayList<>();
+
+        cardToCard.forEach(transaction -> {
+            transactions.add(new GetTransactionsResponse.TransactionInfo(
+                    transaction.getDate(),
+                    transaction.getReceiver().getCardNumber(),
+                    transaction.getAmount(),
+                    transaction.getCurrency()
+            ));
+        });
+        iban.forEach(transaction -> {
+            transactions.add(new GetTransactionsResponse.TransactionInfo(
+                    transaction.getDate(),
+                    transaction.getReceiver().getIBAN(),
+                    transaction.getAmount(),
+                    transaction.getCurrency()
+            ));
+        });
+
+        return transactions.stream().sorted(Comparator.comparing(GetTransactionsResponse.TransactionInfo::date).reversed()).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void performCardToCardTransaction(CardToCardRequest cardToCardRequest, Long userId) {
+
+        List<BankCardDTO> bankCards = bankCardService.fetchBankCardsByUserId(userId);
+
+        BankCardDTO sender = bankCards.stream()
+                .filter(card -> card.getCardNumber().equals(cardToCardRequest.getSenderCardNumber()))
+                .findFirst()
+                .orElseThrow(() -> new UserCardBadRequestException("Sender card not found or does not belong to user"));
 
         var expiryDate = cardToCardRequest.getExpiryDate();
         if(expiryDate.isBefore(LocalDate.now())) {
@@ -130,13 +154,14 @@ public class TransactionService {
     }
 
     @Transactional
-    public void performIbanTransaction(IbanRequest ibanRequest) {
+    public void performIbanTransaction(IbanRequest ibanRequest, Long userId) {
 
-        BankCardDTO sender = bankCardService.fetchBankCardById(ibanRequest.getSenderBankCardId());
+        List<BankCardDTO> bankCards = bankCardService.fetchBankCardsByUserId(userId);
 
-        if(sender.getExpiryDate().isBefore(LocalDate.now())) {
-            throw new UserCardBadRequestException("Expiry date is before current date");
-        }
+        BankCardDTO sender = bankCards.stream()
+                .filter(card -> card.getCardNumber().equals(ibanRequest.getSenderCardNumber()))
+                .findFirst()
+                .orElseThrow(() -> new UserCardBadRequestException("Sender card not found or does not belong to user"));
 
         BankCardDTO receiver = bankCardService.fetchBankCardByIBAN(ibanRequest.getReceiverIban());
 
