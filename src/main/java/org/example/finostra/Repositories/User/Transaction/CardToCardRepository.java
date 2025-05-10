@@ -26,7 +26,7 @@ public interface CardToCardRepository extends JpaRepository<CardToCardTransactio
 
     @Query("""
     SELECT c FROM CardToCardTransaction c 
-    WHERE c.receiverId = :cardId OR c.senderId = :cardId
+    WHERE c.receiver = :cardId OR c.sender = :cardId
     """)
     List<CardToCardTransaction> findCardToCardTransactionByCardId(@Param("cardId") Long cardId);
 
