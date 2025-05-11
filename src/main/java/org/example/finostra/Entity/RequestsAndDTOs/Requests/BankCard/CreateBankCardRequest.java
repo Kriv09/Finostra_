@@ -12,6 +12,5 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class CreateBankCardRequest {
-    private String publicUUID;
     private CurrencyType currency;
 }
