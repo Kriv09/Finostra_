@@ -98,8 +98,8 @@ public class BankCardService {
 
 
     @Transactional
-    public void createBankCard(CreateBankCardRequest createBankCardRequest) {
-        User user = userRepository.getByPublicUUID(createBankCardRequest.getPublicUUID());
+    public void createBankCard(CreateBankCardRequest createBankCardRequest , String publicUUID) {
+        User user = userRepository.getByPublicUUID(publicUUID);
 
 
         String cardNumber = BankCardUtils.generateCardNumber();
