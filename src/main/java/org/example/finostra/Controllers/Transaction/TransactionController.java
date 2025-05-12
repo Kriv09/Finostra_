@@ -50,13 +50,7 @@ public class TransactionController {
     @GetMapping
     @Transactional
     public ResponseEntity<GetTransactionsResponse> getAllTransactions(Authentication auth) {
-
-        if (auth == null || auth.getName() == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
         User user = userService.getById(auth.getName());
-
         var transactions = transactionService.fetchAllTransactionsByUserId(user.getId());
 
         return ResponseEntity.ok(
@@ -67,9 +61,6 @@ public class TransactionController {
     @PostMapping("/cardToCardTransfer")
     @Transactional
     public ResponseEntity<String> performCardToCardTransfer(@RequestBody @Valid CardToCardRequest cardToCardRequest, Authentication auth) {
-        if (auth == null || auth.getName() == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         User user = userService.getById(auth.getName());
         transactionService.performCardToCardTransaction(cardToCardRequest, user.getId());
         return ResponseEntity.ok("Successfully transferred");
@@ -78,9 +69,6 @@ public class TransactionController {
     @PostMapping("/ibanTransfer")
     @Transactional
     public ResponseEntity<String> performIbanTransfer(@RequestBody @Valid IbanRequest ibanRequest, Authentication auth) {
-        if (auth == null || auth.getName() == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         User user = userService.getById(auth.getName());
 
         transactionService.performIbanTransaction(ibanRequest, user.getId());

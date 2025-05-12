@@ -1,4 +1,3 @@
-// CarForCreditRequest.java
 package org.example.finostra.Entity.RequestsAndDTOs.Requests.CreditCard;
 
 import lombok.*;

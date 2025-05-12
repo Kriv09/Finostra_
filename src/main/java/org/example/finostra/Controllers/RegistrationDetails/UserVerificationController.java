@@ -201,9 +201,6 @@ public class UserVerificationController {
     @GetMapping("/me")
     public ResponseEntity<Void> checkMe(Authentication auth)
     {
-        if (auth == null || auth.getName() == null || auth.getName().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         return ResponseEntity.ok().build();
     }
 

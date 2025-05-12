@@ -32,10 +32,6 @@ public class BankCardController {
             @RequestBody CreateBankCardRequest request, Authentication auth
     )
     {
-       if(auth == null || auth.getName() == null)
-       {
-           return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not registered user");
-       }
        bankCardService.createBankCard(request, auth.getName());
        return ResponseEntity.ok("Successfully created bank card");
     }
@@ -46,9 +42,6 @@ public class BankCardController {
             @RequestParam CurrencyType currency
     )
     {
-
-        if(auth == null || auth.getName() == null)
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(GetBankCardResponse.EMPTY);
         return ResponseEntity.ok(
                 GetBankCardResponse.builder().cards(bankCardService.fetchBankCardsByUserId(auth.getName(), currency)
                 ).build()
