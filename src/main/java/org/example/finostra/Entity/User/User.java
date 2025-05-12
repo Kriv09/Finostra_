@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.example.finostra.Entity.Contract.Contract;
+import org.example.finostra.Entity.Envelop.Envelop;
 import org.example.finostra.Entity.User.Roles.ROLE;
 import org.example.finostra.Utils.IdentifierRegistry.IdentifierRegistry;
 import org.springframework.security.core.GrantedAuthority;
@@ -44,6 +45,8 @@ public class User implements UserDetails {
             orphanRemoval = true,
             fetch = FetchType.LAZY)
     private List<Contract> contracts = new ArrayList<>();
+
+
 
     @Override public Collection<? extends GrantedAuthority> getAuthorities() { return roles; }
     @Override public boolean isAccountNonExpired()        { return !expired; }
