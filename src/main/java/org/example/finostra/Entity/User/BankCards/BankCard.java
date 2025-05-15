@@ -1,5 +1,6 @@
 package org.example.finostra.Entity.User.BankCards;
 
+import org.example.finostra.Entity.Envelop.Envelop;
 import org.example.finostra.Entity.User.Transactions.Transaction;
 import org.example.finostra.Entity.User.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -8,6 +9,7 @@ import lombok.*;
 import org.example.finostra.Utils.IdentifierRegistry.IdentifierRegistry;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -46,6 +48,13 @@ public class BankCard {
 
     private String publicUUID;
     private String code;
+
+    @OneToMany(mappedBy = "card",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY)
+    private List<Envelop> envelops = new ArrayList<>();
+
 
 
     @PrePersist

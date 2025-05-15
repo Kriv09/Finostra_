@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@ToString
+@ToString(exclude = "bankCard")
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder

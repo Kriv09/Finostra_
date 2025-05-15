@@ -9,7 +9,6 @@ import org.example.finostra.Entity.User.BankCards.CVVCode;
 import org.example.finostra.Entity.User.BankCards.CurrencyType;
 import org.example.finostra.Entity.User.User;
 import org.example.finostra.Exceptions.UserCardNotFoundException;
-import org.example.finostra.Exceptions.UserNotFoundException;
 import org.example.finostra.Services.User.UserService;
 import org.example.finostra.Utils.Mappers.BankCard.BankCardMapper;
 import org.example.finostra.Repositories.User.BankCard.BankCardRepository;
@@ -18,7 +17,6 @@ import org.example.finostra.Utils.BankCards.BankCardUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -191,5 +189,12 @@ public class BankCardService {
                         card.getExpiryDate()
                 )).collect(Collectors.toList());
         return cardInfoList;
+    }
+
+
+    @Transactional
+    public Optional<BankCard> fetchRawByCardNumber(String cardNumber)
+    {
+        return bankCardRepository.findByCardNumber(cardNumber);
     }
 }
