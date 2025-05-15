@@ -1,5 +1,6 @@
 package org.example.finostra.Services.User.BankCard;
 
+import jakarta.transaction.Transactional;
 import org.example.finostra.Entity.RequestsAndDTOs.DTO.BankCard.BalanceDTO;
 import org.example.finostra.Entity.User.BankCards.Balance;
 import org.example.finostra.Entity.User.BankCards.CurrencyType;
@@ -64,6 +65,37 @@ public class BalanceService {
         updatedBalance.setAmount(updatedBalance.getAmount().add(newAmount));
 
         balanceRepository.save(updatedBalance);
+    }
+
+    @Transactional
+    public void updateBalance(Integer balanceId, BigDecimal amount, boolean raw) {
+
+        if (amount == null) {
+            throw new IllegalArgumentException("Amount must not be null");
+        }
+
+        Balance balance = balanceRepository.findById(balanceId)
+                .orElseThrow(() -> new UserCardNotFoundException("Balance record not found"));
+
+        BigDecimal newAmount = raw
+                ? amount
+                : balance.getAmount().add(amount);
+
+        if (newAmount.signum() < 0) {
+            throw new IllegalArgumentException("Balance cannot become negative");
+        }
+
+        balance.setAmount(newAmount);
+
+        balanceRepository.save(balance);
+    }
+
+    @Transactional
+    public void topUp(Long balanceId, BigDecimal delta) {
+        if (delta == null) {
+            throw new IllegalArgumentException("Delta must not be null");
+        }
+        balanceRepository.incrementAmount(balanceId, delta);
     }
 
 }

@@ -15,6 +15,17 @@ import java.util.Optional;
 public interface EnvelopsRepository extends JpaRepository<Envelop,Long> {
 
 
+
+    @Query("""
+        select e
+        from Envelop e
+        where e.publicUUID           = :envelopUUID
+          and e.card.user.publicUUID = :userUUID
+          and e.enabled              = true
+    """)
+    Optional<Envelop> findByPublicUUIDAndUserUUID(@Param("envelopUUID") String envelopUUID,
+                                                  @Param("userUUID")    String userUUID);
+
     @Query("""
         select e
         from Envelop e
@@ -39,4 +50,18 @@ public interface EnvelopsRepository extends JpaRepository<Envelop,Long> {
          where e.publicUUID = :envelopUUID
     """)
     void disable(@Param("envelopUUID") String envelopUUID);
+
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update Envelop e
+           set e.name           = :#{#env.name},
+               e.description    = :#{#env.description},
+               e.expiryDate     = :#{#env.expiryDate},
+               e.amountCapacity = :#{#env.amountCapacity},
+               e.actualAmount   = :#{#env.actualAmount},
+               e.enabled        = :#{#env.enabled}
+         where e.id = :#{#env.id}
+    """)
+    void update(@Param("env") Envelop env);
 }
