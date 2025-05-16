@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.finostra.Entity.Contract.Contract;
 import org.example.finostra.Entity.Envelop.Envelop;
 import org.example.finostra.Entity.User.Roles.ROLE;
+import org.example.finostra.Entity.User.UserProfile.UserProfile;
 import org.example.finostra.Utils.IdentifierRegistry.IdentifierRegistry;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -39,6 +40,9 @@ public class User implements UserDetails {
     private String email;
     private String phoneNumber;
     private String docsLink;
+
+    @OneToOne(mappedBy = "user", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    private UserProfile userProfile;
 
     @OneToMany(mappedBy = "user",
             cascade = CascadeType.ALL,
