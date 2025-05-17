@@ -21,5 +21,7 @@ public record GetUserProfileResponse(
 
         LocalDate birthDate,
 
+        String phoneNumber,
+
         List<PhoneNumberResponse> phoneNumbers
 ) {}

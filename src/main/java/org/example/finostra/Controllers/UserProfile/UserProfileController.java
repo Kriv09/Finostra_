@@ -43,6 +43,16 @@ public class UserProfileController {
         userProfileService.addPhoneNumber(phoneNumberRequest, auth.getName());
         return ResponseEntity.ok("Phone number added to user profile!");
     }
+    @PostMapping("/updatePhoneNumber")
+    public ResponseEntity<String> updatePhoneNumber(@RequestBody PhoneNumberRequest phoneNumberRequest, Authentication auth) {
+        userProfileService.updatePhoneNumber(auth.getName(), phoneNumberRequest);
+        return ResponseEntity.ok("Phone number updated!");
+    }
+    @DeleteMapping("/deletePhoneNumber")
+    public ResponseEntity<String> deletePhoneNumber(@RequestParam String phoneNumber, Authentication auth) {
+        userProfileService.deletePhoneNumber(auth.getName(), phoneNumber);
+        return ResponseEntity.ok("Phone number deleted!");
+    }
 
     @PostMapping(value = "/uploadAvatarImage", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> uploadAvatarImage(@RequestParam("image") MultipartFile image, Authentication auth) {
