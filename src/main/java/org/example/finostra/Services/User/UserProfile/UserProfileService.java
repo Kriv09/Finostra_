@@ -85,6 +85,14 @@ public class UserProfileService {
     }
 
     @Transactional
+    public String getPhoneNumber(String userUUID) {
+
+        var user = userService.getById(userUUID);
+
+        return user.getPhoneNumber();
+    }
+
+    @Transactional
     public void updateUserProfile(UserProfileRequest userProfileRequest, String userUUID) {
 
         var user = userService.getById(userUUID);
@@ -121,6 +129,44 @@ public class UserProfileService {
 
         userProfileRepository.save(userProfile);
     }
+
+    @Transactional
+    public void deletePhoneNumber(String userUUID, String phoneNumberToDelete) {
+        var user = userService.getById(userUUID);
+        var optionalUserProfile = userProfileRepository.findByUserId(user.getId());
+        if (optionalUserProfile.isEmpty()) throw new EntityNotFoundException("User not found");
+
+        var userProfile = optionalUserProfile.get();
+
+        boolean removed = userProfile.getPhoneNumbers().removeIf(
+                phoneNumber -> phoneNumber.getPhoneNumber().equals(phoneNumberToDelete)
+        );
+
+        if (!removed) {
+            throw new EntityNotFoundException("Phone number not found");
+        }
+
+        userProfileRepository.save(userProfile);
+    }
+
+    @Transactional
+    public void updatePhoneNumber(String userUUID, PhoneNumberRequest updatedPhoneNumberRequest) {
+        var user = userService.getById(userUUID);
+        var optionalUserProfile = userProfileRepository.findByUserId(user.getId());
+        if (optionalUserProfile.isEmpty()) throw new EntityNotFoundException("User not found");
+
+        var userProfile = optionalUserProfile.get();
+
+        var existingPhone = userProfile.getPhoneNumbers().stream()
+                .filter(p -> p.getPhoneNumber().equals(updatedPhoneNumberRequest.getPhoneNumber()))
+                .findFirst()
+                .orElseThrow(() -> new EntityNotFoundException("Phone number not found"));
+
+        existingPhone.setDescription(updatedPhoneNumberRequest.getDescription());
+
+        userProfileRepository.save(userProfile);
+    }
+
 
     @Transactional
     public String uploadImageAvatar(MultipartFile file, String userUUID) {
@@ -177,6 +223,7 @@ public class UserProfileService {
                 .patronymicEn(userProfile.getPatronymicEn())
                 .birthDate(userProfile.getBirthDate())
                 .avatarBlobLink(getSasLink(userProfile.getAvatarBlobLink()))
+                .phoneNumber(user.getPhoneNumber())
                 .phoneNumbers(
                         userProfile.getPhoneNumbers().stream()
                                 .map(p -> new PhoneNumberResponse(p.getPhoneNumber(), p.getDescription()))
