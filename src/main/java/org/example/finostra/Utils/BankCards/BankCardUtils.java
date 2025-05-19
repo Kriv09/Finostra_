@@ -3,15 +3,13 @@ package org.example.finostra.Utils.BankCards;
 import java.time.LocalDate;
 import java.util.Random;
 
-
-
 public class BankCardUtils {
     private static final String COUNTRY_CODE = "UA";
     private static final String BANK_IDENTIFIER = "300000";
     private static final Random RANDOM = new Random();
 
-    public static String generateCardNumber() {
-        return helperGenerateCardNumber("VISA");
+    public static String generateCardNumber(CardType cardType) {
+        return helperGenerateCardNumber(cardType);
     }
 
     public static String generateIBAN(Long id) {
@@ -42,16 +40,16 @@ public class BankCardUtils {
     }
 
 
-    private static String helperGenerateCardNumber(String cardType) {
+    private static String helperGenerateCardNumber(CardType cardType) {
         StringBuilder cardNumber = new StringBuilder();
         short cardNumberLength = 0;
 
-        switch (cardType.toUpperCase()) {
-            case "VISA":
+        switch (cardType) {
+            case VISA:
                 cardNumberLength = 16;
                 cardNumber.append(4);
                 break;
-            case "MASTERCARD":
+            case MASTERCARD:
                 cardNumberLength = 16;
                 cardNumber.append(5);
                 break;

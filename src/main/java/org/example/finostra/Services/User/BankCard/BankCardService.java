@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import org.example.finostra.Entity.RequestsAndDTOs.DTO.BankCard.BankCardDTO;
 import org.example.finostra.Entity.RequestsAndDTOs.Requests.BankCard.CreateBankCardRequest;
 import org.example.finostra.Entity.RequestsAndDTOs.Responses.GetBankCardResponse;
+import org.example.finostra.Entity.User.BankCards.Balance;
 import org.example.finostra.Entity.User.BankCards.BankCard;
 import org.example.finostra.Entity.User.BankCards.CVVCode;
 import org.example.finostra.Entity.User.BankCards.CurrencyType;
@@ -100,7 +101,7 @@ public class BankCardService {
         User user = userRepository.getByPublicUUID(publicUUID);
 
 
-        String cardNumber = BankCardUtils.generateCardNumber();
+        String cardNumber = BankCardUtils.generateCardNumber(createBankCardRequest.getCardType());
         LocalDate expirationDate = BankCardUtils.generateExpirationDate(5);
         String IBAN = BankCardUtils.generateIBAN(user.getId());
         Boolean active = true;
@@ -108,7 +109,7 @@ public class BankCardService {
 
         do {
             if (bankCardRepository.existsByCardNumber(cardNumber)) {
-                cardNumber = BankCardUtils.generateCardNumber();
+                cardNumber = BankCardUtils.generateCardNumber(createBankCardRequest.getCardType());
             }
 
             if (bankCardRepository.existsByIBAN(IBAN)) {
@@ -186,7 +187,8 @@ public class BankCardService {
                 .map(card -> new GetBankCardResponse.CardInfo(
                         card.getCardNumber(),
                         this.fetchOrGenerateCVV(card.getId()).getCvv(),
-                        card.getExpiryDate()
+                        card.getExpiryDate(),
+                        balanceService.fetchBalanceByBankCardId(card.getId())
                 )).collect(Collectors.toList());
         return cardInfoList;
     }
