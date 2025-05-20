@@ -23,6 +23,11 @@ public class UserProfileController {
     @GetMapping("/get")
     public ResponseEntity<GetUserProfileResponse> getUserProfile(Authentication auth) {
         var userProfile = userProfileService.getUserProfile(auth.getName());
+
+        if(userProfile == null) {
+            return ResponseEntity.status(404).body(null);
+        }
+
         return ResponseEntity.ok(userProfile);
     }
 
