@@ -75,13 +75,18 @@ public class UserVerificationController {
         String storedCode = smsService.fetchConfirmationCode(request.getPhoneNumber());
         if (storedCode != null && storedCode.equals(request.getConfirmationCode())) {
             smsService.eraseConfirmationCachedCode(request.getConfirmationCode());
-            User saveUser = userService.save(
-                    User.builder().phoneNumber(request.getPhoneNumber())
-                                    .build()
-            );
+
+            User user =  User.builder().phoneNumber(request.getPhoneNumber())
+                    .build();
+            User savedUser = userService.save(user);
+
+            savedUser.setUsername(savedUser.getPublicUUID());
+
+            userService.save(savedUser);
+
 
             return ResponseEntity.ok(
-                    UserIdResponse.builder().publicUUID(saveUser.getPublicUUID())
+                    UserIdResponse.builder().publicUUID(savedUser.getPublicUUID())
                             .build()
             );
         }
@@ -195,6 +200,30 @@ public class UserVerificationController {
                 .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                 .body(new LoginResponse("Login successful"));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(Authentication auth) {
+        ResponseCookie accessCookie = ResponseCookie.from("access_token", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
+
+        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body("Logout successful");
     }
 
 
