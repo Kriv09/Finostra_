@@ -48,6 +48,12 @@ public class BankCardController {
         );
     }
 
+    @GetMapping("/my")
+    public ResponseEntity<GetBankCardResponse> getMyCard(Authentication auth)
+    {
+        return bankCardService.fetchAllBankCardsByUserPublicUUID(auth.getName());
+    }
+
 
 
 

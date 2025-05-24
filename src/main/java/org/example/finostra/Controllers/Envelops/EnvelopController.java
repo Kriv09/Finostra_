@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -27,10 +28,10 @@ public class EnvelopController {
 
 
     @PostMapping("/createEnvelop")
-    public ResponseEntity<String> createEnvelop(@RequestBody CreateEnvelopRequest request, Authentication auth) {
+    public ResponseEntity<Void> createEnvelop(@RequestBody CreateEnvelopRequest request, Authentication auth) {
         String userPublicUUID = auth.getName();
         String uuid = envelopService.createEnvelop(request, userPublicUUID);
-        return ResponseEntity.ok(uuid);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/fetchAllEnvelops")
@@ -52,23 +53,46 @@ public class EnvelopController {
         return ResponseEntity.ok(new FetchAllEnvelopsResponse(dtoList));
     }
 
-    @PostMapping("/extractMoneyFromEnvelop")
-    public ResponseEntity<String> extract(Authentication auth, @RequestBody ExtractMoneyFromEnvelopRequest request)
+    @PutMapping("/extractMoneyFromEnvelop")
+    public ResponseEntity<String> extract(Authentication auth,
+                                          @RequestBody ExtractMoneyFromEnvelopRequest r)
     {
-        String userPublicUUID = auth.getName();
-        envelopService.extractAmount(request.getAmount(), userPublicUUID, request.getEnvelopUUID());
-
+        envelopService.extractAmount(
+                auth.getName(),
+                r.getName(),
+                r.getAmountCapacity(),
+                r.getAmount()
+        );
         return ResponseEntity.ok("Successfully extracted");
     }
 
     @PutMapping("/disableEnvelop")
-    public ResponseEntity<Void> disable(
-            @RequestBody disableEnvelopRequest request
-    )
+    public ResponseEntity<Void> disable(@RequestBody disableEnvelopRequest r,
+                                        Authentication auth)
     {
-        this.envelopService.disableEnvelop(request.getEnvPublicUUID());
+        envelopService.disableEnvelop(
+                auth.getName(),
+                r.getName(),
+                r.getAmountCapacity()
+        );
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/topUpEnvelop")
+    public ResponseEntity<String> topUp(@RequestBody TopUpEnvelopRequest r,
+                                        Authentication auth)
+    {
+        envelopService.topUp(
+                auth.getName(),
+                r.name(),
+                r.capacity(),
+                r.cardNumber(),
+                r.amount());
+        return ResponseEntity.ok("Successfully top up");
+    }
 
+    public record TopUpEnvelopRequest(String name,
+                                      BigDecimal capacity,
+                                      String cardNumber,
+                                      BigDecimal amount) { }
 }

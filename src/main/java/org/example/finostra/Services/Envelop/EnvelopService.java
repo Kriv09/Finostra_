@@ -1,7 +1,8 @@
 package org.example.finostra.Services.Envelop;
 
-
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.example.finostra.Controllers.Envelops.EnvelopController;
 import org.example.finostra.Entity.Envelop.Envelop;
 import org.example.finostra.Entity.RequestsAndDTOs.Requests.Envelop.CreateEnvelopRequest;
 import org.example.finostra.Entity.User.BankCards.Balance;
@@ -12,89 +13,129 @@ import org.example.finostra.Utils.IdentifierRegistry.IdentifierRegistry;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class EnvelopService {
 
-    private final BankCardService bankCardService;
-    private final EnvelopsRepository envelopsRepository;
-    private final BalanceService balanceService;
+    private final BankCardService      bankCardService;
+    private final BalanceService       balanceService;
+    private final EnvelopsRepository   envelopRepo;
 
-    public EnvelopService(BankCardService bankCardService, EnvelopsRepository envelopsRepository, BalanceService balanceService) {
-        this.bankCardService = bankCardService;
-        this.envelopsRepository = envelopsRepository;
-        this.balanceService = balanceService;
-    }
 
     @Transactional
-    public String createEnvelop(CreateEnvelopRequest request, String userPublicUUID)
-    {
-        var cards    = bankCardService.fetchBankCardsByUserId(userPublicUUID, request.getCurrency());
-        var bindCard = bankCardService.fetchRawByCardNumber(cards.get(0).cardNumber());
+    public String createEnvelop(CreateEnvelopRequest req, String userUUID) {
 
-        if (bindCard.isEmpty())
-            throw new IllegalArgumentException("Card not found");
+        var cardInfo = bankCardService
+                .fetchBankCardsByUserId(userUUID, req.getCurrency())
+                .get(0);                                     // перша картка у валюті
 
-        Envelop envelop = Envelop.builder()
-                .name(request.getName())
-                .amountCapacity(request.getAmountCapacity())
-                .description(request.getDescription())
-                .card(bindCard.get())
+        var card = bankCardService.fetchRawByCardNumber(cardInfo.cardNumber())
+                .orElseThrow();
+
+        Envelop env = Envelop.builder()
                 .publicUUID(IdentifierRegistry.generate())
-                .expiryDate(request.getExpiryDate())
+                .name(req.getName())
+                .amountCapacity(req.getAmountCapacity())
                 .actualAmount(BigDecimal.ZERO)
+                .description(req.getDescription())
+                .expiryDate(req.getExpiryDate())
                 .enabled(true)
+                .card(card)
                 .build();
 
-        Envelop saved = envelopsRepository.save(envelop);
-        return saved.getPublicUUID();
+        return envelopRepo.save(env).getPublicUUID();
     }
 
 
     @Transactional
-    public List<Envelop> getAllEnvelopsByUserUUID(String userPublicUUID)
-    {
-        return envelopsRepository.findAllByUserUUID(userPublicUUID);
+    public List<Envelop> getAllEnvelopsByUserUUID(String userUUID) {
+        return envelopRepo.findAllByUserUUID(userUUID);
     }
 
 
-
     @Transactional
-    public void extractAmount(BigDecimal amount, String userPublicUUID, String envelopUUID) {
-        if (amount == null || amount.signum() <= 0) {
+    public void extractAmount(String userUUID,
+                              String name,
+                              BigDecimal capacity,
+                              BigDecimal amount) {
+
+        if (amount == null || amount.signum() <= 0)
             throw new IllegalArgumentException("Amount must be positive");
-        }
 
-        Envelop envelop = envelopsRepository
-                .findByPublicUUIDAndUserUUID(envelopUUID, userPublicUUID)
+        Envelop env = envelopRepo
+                .findByNameAndCapacityAndUserUUID(name, capacity, userUUID)
                 .orElseThrow(() -> new IllegalArgumentException("Envelope not found"));
 
-        if (Boolean.FALSE.equals(envelop.getEnabled())) {
+        if (Boolean.FALSE.equals(env.getEnabled()))
             throw new IllegalStateException("Envelope is disabled");
-        }
 
-        BigDecimal available = envelop.getActualAmount();
-        if (available.compareTo(amount) < 0) {
-            throw new IllegalArgumentException("Not enough money in the envelope");
-        }
+        if (env.getActualAmount().compareTo(amount) < 0)
+            throw new IllegalArgumentException("Not enough money in envelope");
 
-        Balance balance = envelop.getCard().getBalance();
-        if (balance == null) {
-            throw new IllegalStateException("Card balance record is missing");
-        }
+        Balance bal = env.getCard().getBalance();
+        balanceService.topUp(bal.getId(), amount);          // повертаємо на картку
 
-        envelop.setActualAmount(available.subtract(amount));
-
-        envelop.setActualAmount(available.subtract(amount));
-        envelopsRepository.update(envelop);
-
-        balanceService.topUp(balance.getId(), amount);
+        env.setActualAmount(env.getActualAmount().subtract(amount));
+        envelopRepo.update(env);
     }
 
 
     @Transactional
-    public void disableEnvelop(String envelopUUID) {
-        envelopsRepository.disable(envelopUUID);
+    public void disableEnvelop(String userUUID,
+                               String name,
+                               BigDecimal capacity) {
+        envelopRepo.disableByNameAndCapacityAndUserUUID(name, capacity, userUUID);
+    }
+
+
+    @Transactional
+    public void topUp(String userUUID,
+                      String name,
+                      BigDecimal capacity,
+                      String cardNumber,
+                      BigDecimal amount) {
+
+        if (amount == null || amount.signum() <= 0)
+            throw new IllegalArgumentException("Amount must be positive");
+
+        Envelop env = envelopRepo
+                .findByNameAndCapacityAndUserUUID(name, capacity, userUUID)
+                .orElseThrow(() -> new IllegalArgumentException("Envelope not found"));
+
+        if (Boolean.FALSE.equals(env.getEnabled()))
+            throw new IllegalStateException("Envelope is disabled");
+
+        if (env.getExpiryDate() != null &&
+                env.getExpiryDate().isBefore(LocalDate.now()))
+            throw new IllegalStateException("Envelope is expired");
+
+        BigDecimal newAmount = env.getActualAmount().add(amount);
+        if (env.getAmountCapacity() != null &&
+                newAmount.compareTo(env.getAmountCapacity()) > 0)
+            throw new IllegalArgumentException("Amount exceeds envelope capacity");
+
+        var card = bankCardService.fetchRawByCardNumber(cardNumber)
+                .orElseThrow(() -> new IllegalArgumentException("Card not found"));
+
+        if (!card.getUser().getPublicUUID().equals(userUUID))
+            throw new IllegalArgumentException("Card does not belong to this user");
+
+        Balance bal = card.getBalance();
+        if (bal.getAmount().compareTo(amount) < 0)
+            throw new IllegalArgumentException("Not enough funds on card");
+
+        balanceService.withdraw(bal.getId(), amount);
+
+        env.setActualAmount(newAmount);
+        envelopRepo.update(env);
+
+        if (env.getAmountCapacity() != null &&
+                newAmount.compareTo(env.getAmountCapacity()) == 0) {
+            env.setEnabled(false);
+            envelopRepo.update(env);
+        }
     }
 }

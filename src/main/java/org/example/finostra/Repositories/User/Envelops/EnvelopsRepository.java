@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -64,4 +65,28 @@ public interface EnvelopsRepository extends JpaRepository<Envelop,Long> {
          where e.id = :#{#env.id}
     """)
     void update(@Param("env") Envelop env);
+
+    @Modifying
+    @Query("""
+           UPDATE Envelop e
+           SET e.enabled = false
+           WHERE e.name            = :name
+             AND e.amountCapacity  = :capacity
+             AND e.card.user.publicUUID = :userUUID
+           """)
+    void disableByNameAndCapacityAndUserUUID(@Param("name")     String name,
+                                             @Param("capacity") BigDecimal capacity,
+                                             @Param("userUUID") String userUUID);
+
+    @Query("""
+       SELECT e
+       FROM Envelop e
+       JOIN e.card.user u
+       WHERE u.publicUUID = :userUUID
+         AND e.name = :name
+         AND e.amountCapacity = :capacity
+       """)
+    Optional<Envelop> findByNameAndCapacityAndUserUUID(@Param("name")      String name,
+                                                       @Param("capacity") BigDecimal capacity,
+                                                       @Param("userUUID")  String userUUID);
 }
