@@ -39,6 +39,26 @@ public class BalanceService {
         return balanceMapper.toDTO(balance.get());
     }
 
+    @Transactional
+    public void withdraw(Long balanceId, BigDecimal delta) {
+
+        if (delta == null || delta.signum() <= 0) {
+            throw new IllegalArgumentException("Delta must be positive");
+        }
+
+        Balance balance = balanceRepository.findById(Math.toIntExact(balanceId))
+                .orElseThrow(() -> new UserCardNotFoundException("Balance not found"));
+
+        BigDecimal newAmount = balance.getAmount().subtract(delta);
+
+        if (newAmount.signum() < 0) {
+            throw new IllegalArgumentException("Not enough funds on card balance");
+        }
+
+        balance.setAmount(newAmount);
+        balanceRepository.save(balance);
+    }
+
     public void createBalanceForBankCard(Long bankCardId, CurrencyType currency) {
         var bankCard = bankCardRepository.findById(bankCardId);
         if(bankCard.isEmpty()) {

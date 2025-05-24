@@ -2,10 +2,12 @@ package org.example.finostra.Repositories.User.BankCard;
 
 
 import io.lettuce.core.dynamic.annotation.Param;
+import org.example.finostra.Entity.RequestsAndDTOs.Responses.GetBankCardResponse;
 import org.example.finostra.Entity.User.BankCards.BankCard;
 import org.example.finostra.Entity.User.BankCards.CurrencyType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -35,4 +37,21 @@ public interface BankCardRepository extends JpaRepository<BankCard, Long> {
     """)
     List<BankCard> findAllByUserPublicUUIDAndCurrency(@Param("publicUUID") String publicUUID,
                                                       @Param("currency") CurrencyType currency);
+
+    @Query("""
+           SELECT bc
+           FROM BankCard bc
+           WHERE bc.publicUUID = :uuid
+           """)
+    Optional<BankCard> findByPublicUUID(@Param("uuid") String bankCardPublicUUID);
+
+
+
+    @Query("""
+           SELECT bc
+           FROM BankCard bc
+           JOIN bc.user u
+           WHERE u.publicUUID = :publicUUID
+           """)
+    List<BankCard> findAllByUserPublicUUID(@Param("publicUUID") String publicUUID);
 }

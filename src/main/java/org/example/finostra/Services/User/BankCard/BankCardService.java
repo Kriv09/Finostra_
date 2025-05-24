@@ -18,6 +18,7 @@ import org.example.finostra.Utils.BankCards.BankCardUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -61,6 +62,8 @@ public class BankCardService {
                 .collect(Collectors.toList());
     }
 
+
+
     public BankCardDTO fetchBankCardById(Long bankCardId) {
         Optional<BankCard> bankCard = bankCardRepository.findById(bankCardId);
         if (bankCard.isEmpty()) {
@@ -68,6 +71,10 @@ public class BankCardService {
         }
 
         return bankCardMapper.toDTO(bankCard.get());
+    }
+
+    public Optional<BankCard> fetchRawByPublicUUID(String bankCardPublicUUID) {
+        return bankCardRepository.findByPublicUUID(bankCardPublicUUID);
     }
 
     public BankCardDTO fetchBankCardByCardNumber(String cardNumber) {
@@ -198,5 +205,26 @@ public class BankCardService {
     public Optional<BankCard> fetchRawByCardNumber(String cardNumber)
     {
         return bankCardRepository.findByCardNumber(cardNumber);
+    }
+
+    @Transactional
+    public ResponseEntity<GetBankCardResponse> fetchAllBankCardsByUserPublicUUID(String userPublicUUID) {
+
+        List<BankCard> cards = bankCardRepository.findAllByUserPublicUUID(userPublicUUID);
+
+        if (cards.isEmpty()) {
+            return ResponseEntity.ok(GetBankCardResponse.EMPTY);
+        }
+
+        List<GetBankCardResponse.CardInfo> dtoList = cards.stream()
+                .map(card -> new GetBankCardResponse.CardInfo(
+                        card.getCardNumber(),
+                        this.fetchOrGenerateCVV(card.getId()).getCvv(),
+                        card.getExpiryDate(),
+                        balanceService.fetchBalanceByBankCardId(card.getId())
+                ))
+                .toList();
+
+        return ResponseEntity.ok(new GetBankCardResponse(dtoList));
     }
 }

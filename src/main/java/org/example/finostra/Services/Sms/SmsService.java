@@ -49,11 +49,11 @@ public class SmsService {
 
         String confirmationCode = verificationCodeGenerator.generatePhoneNumberVerificationCode(LocalDate.now().toString() + phoneNumber);
         String smsMessage = "Your confirmation code is: " + confirmationCode;
-        Message.creator(
-                new PhoneNumber(phoneNumber),
-                new PhoneNumber(fromNumber),
-                smsMessage
-        ).create();
+//        Message.creator(
+//                new PhoneNumber(phoneNumber),
+//                new PhoneNumber(fromNumber),
+//                smsMessage
+//        ).create();
 
 
         String redisKey = "confirmation:" + phoneNumber;

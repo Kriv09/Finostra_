@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 
 @Getter @Setter
 public class ExtractMoneyFromEnvelopRequest {
+    private BigDecimal amountCapacity;
+    private String name;
     private BigDecimal amount;
-    private String envelopUUID;
 }
