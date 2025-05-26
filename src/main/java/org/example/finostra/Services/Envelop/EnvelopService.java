@@ -135,6 +135,8 @@ public class EnvelopService {
         if (env.getAmountCapacity() != null &&
                 newAmount.compareTo(env.getAmountCapacity()) == 0) {
             env.setEnabled(false);
+            balanceService.updateBalance(bal.getId(), bal.getAmount().add(env.getAmountCapacity()));
+            env.setActualAmount(BigDecimal.ZERO);
             envelopRepo.update(env);
         }
     }
