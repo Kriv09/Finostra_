@@ -51,6 +51,7 @@ public class RedisConfig {
         LettuceClientConfiguration lettuceClientConfiguration = clientConfigBuilder.build();
 
         LettuceConnectionFactory factory = new LettuceConnectionFactory(configuration, lettuceClientConfiguration);
+        factory.afterPropertiesSet();
 
         return factory;
     }

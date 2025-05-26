@@ -7,6 +7,8 @@ import org.example.finostra.Entity.RequestsAndDTOs.Requests.Envelop.disableEnvel
 import org.example.finostra.Entity.RequestsAndDTOs.Responses.FetchAllEnvelopsResponse;
 import org.example.finostra.Services.Envelop.EnvelopService;
 import org.example.finostra.Services.User.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,8 @@ import java.util.List;
 public class EnvelopController {
     private final EnvelopService envelopService;
     private final UserService service;
+
+    private final Logger logger = LoggerFactory.getLogger(EnvelopController.class);
 
 
     public EnvelopController(EnvelopService envelopService, UserService service) {
