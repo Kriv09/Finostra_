@@ -3,6 +3,8 @@ package org.example.finostra.Controllers.CreditCard;
 import org.example.finostra.Entity.Contract.Contract;
 import org.example.finostra.Entity.RequestsAndDTOs.Requests.CreditCard.AttachCreditRequest;
 import org.example.finostra.Entity.RequestsAndDTOs.Requests.CreditCard.CarForCreditRequest;
+import org.example.finostra.Entity.RequestsAndDTOs.Responses.CreditCard.GetAllCreditCardResponse;
+import org.example.finostra.Entity.User.CreditCard.CreditCard;
 import org.example.finostra.Services.Contract.ContractService;
 import org.example.finostra.Services.Contract.ContractService.ContractDto;
 import org.example.finostra.Services.User.CreditCard.CreditCardService;
@@ -22,7 +24,7 @@ public class CreditsController {
     public CreditsController(CreditCardService creditCardService,
                              ContractService contractService) {
         this.creditCardService = creditCardService;
-        this.contractService   = contractService;
+        this.contractService = contractService;
     }
 
     @PostMapping("/attachCredit")
@@ -31,6 +33,13 @@ public class CreditsController {
         String userPublicUUID = auth.getName();
         Contract contract = creditCardService.attachCredit(userPublicUUID, request);
         return ResponseEntity.ok(contractService.signUrl(contract.getBlobLink()));
+    }
+
+    @GetMapping("/fetchAllCreditCards")
+    public ResponseEntity<GetAllCreditCardResponse> getAllCreditCards(Authentication auth) {
+        String userPublicUUID = auth.getName();
+        var creditCards = creditCardService.getCreditCards(userPublicUUID);
+        return ResponseEntity.ok(GetAllCreditCardResponse.builder().creditCards(creditCards).build());
     }
 
     @GetMapping("/fetchAllContracts")
@@ -51,5 +60,6 @@ public class CreditsController {
         return ResponseEntity.ok(contractService.signUrl(contract.getBlobLink()));
     }
 
-    private record UserContractResponse(List<String> contracts) {}
+    private record UserContractResponse(List<String> contracts) {
+    }
 }

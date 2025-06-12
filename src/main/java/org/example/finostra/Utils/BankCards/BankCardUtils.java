@@ -13,7 +13,7 @@ public class BankCardUtils {
     }
 
     public static String generateIBAN(Long id) {
-        String accountNumber = String.format("%019d", id + RANDOM.nextInt(50));
+        String accountNumber = String.format("%019d", id * RANDOM.nextInt(1000) + RANDOM.nextInt(1000));
 
         String ibanWithoutCheckDigits = BANK_IDENTIFIER + accountNumber + COUNTRY_CODE + "00";
 
