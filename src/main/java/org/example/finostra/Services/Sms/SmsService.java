@@ -48,7 +48,7 @@ public class SmsService {
     public void sendConfirmationCode(String phoneNumber) {
 
         String confirmationCode = verificationCodeGenerator.generatePhoneNumberVerificationCode(LocalDate.now().toString() + phoneNumber);
-        String smsMessage = "Your confirmation code is: " + confirmationCode;
+//        String smsMessage = "Your confirmation code is: " + confirmationCode;
 //        Message.creator(
 //                new PhoneNumber(phoneNumber),
 //                new PhoneNumber(fromNumber),
