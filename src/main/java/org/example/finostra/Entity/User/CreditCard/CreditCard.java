@@ -53,6 +53,10 @@ public class CreditCard {
             publicUUID = IdentifierRegistry.generate();
         if (code == null || code.isBlank())
             code = IdentifierRegistry.generatePasscode();
+        if (balance == null) {
+            balance = new CreditBalance();
+            balance.setCreditCard(this);
+        }
     }
 
     public void set(java.math.BigDecimal newLoan) {

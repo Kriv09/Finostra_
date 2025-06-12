@@ -20,37 +20,51 @@ import com.itextpdf.layout.property.TextAlignment;
 import com.itextpdf.layout.property.UnitValue;
 import jakarta.annotation.PostConstruct;
 import org.example.finostra.Entity.Contract.Contract;
+import org.example.finostra.Entity.RequestsAndDTOs.Requests.BankCard.CreateBankCardRequest;
 import org.example.finostra.Entity.RequestsAndDTOs.Requests.CreditCard.AttachCreditRequest;
 import org.example.finostra.Entity.RequestsAndDTOs.Requests.CreditCard.CarForCreditRequest;
+import org.example.finostra.Entity.RequestsAndDTOs.Requests.CreditCard.CreateCreditCardRequest;
+import org.example.finostra.Entity.RequestsAndDTOs.Responses.CreditCard.GetAllCreditCardResponse;
 import org.example.finostra.Entity.User.CreditCard.CreditCard;
+import org.example.finostra.Entity.User.CreditCard.CurrencyType;
 import org.example.finostra.Entity.User.User;
+import org.example.finostra.Entity.User.UserProfile.UserProfile;
 import org.example.finostra.Repositories.User.ContractRepository;
 import org.example.finostra.Repositories.User.CreditCard.CreditCardRepository;
 import org.example.finostra.Services.User.UserService;
+import org.example.finostra.Utils.BankCards.BankCardUtils;
+import org.example.finostra.Utils.BankCards.CardType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class CreditCardService {
 
-    private final UserService          userService;
+    private final UserService userService;
     private final CreditCardRepository cardRepo;
     private final ContractRepository contractRepo;
+    private final CreditCardRepository creditCardRepository;
 
-    @Value("${azure.storage.connection-string}")   private String connectionString;
-    @Value("${azure.storage.container.contracts}") private String containerName;
+    @Value("${azure.storage.connection-string}")
+    private String connectionString;
+    @Value("${azure.storage.container.contracts}")
+    private String containerName;
     private BlobContainerClient container;
 
-    public CreditCardService(UserService userService, CreditCardRepository cardRepo, ContractRepository contractRepo) {
+    public CreditCardService(UserService userService, CreditCardRepository cardRepo, ContractRepository contractRepo, CreditCardRepository creditCardRepository) {
         this.userService = userService;
         this.cardRepo = cardRepo;
         this.contractRepo = contractRepo;
+        this.creditCardRepository = creditCardRepository;
     }
 
     @PostConstruct
@@ -61,18 +75,61 @@ public class CreditCardService {
         if (!container.exists()) container.create();
     }
 
+    @Transactional
+    public CreditCard createCreditCard(String userUUID, CreateCreditCardRequest request) {
+        User user = userService.getById(userUUID);
+
+        String cardNumber = BankCardUtils.generateCardNumber(request.getCardType());
+        LocalDate expirationDate = BankCardUtils.generateExpirationDate(5);
+        String IBAN = BankCardUtils.generateIBAN(user.getId());
+        Boolean active = true;
+        CurrencyType currency = request.getCurrency();
+
+        CreditCard creditCard = CreditCard.builder()
+                .cardNumber(cardNumber)
+                .expiryDate(expirationDate)
+                .IBAN(IBAN)
+                .active(active)
+                .user(user)
+                .build();
+
+
+        creditCardRepository.save(creditCard);
+
+        return creditCard;
+    }
+
+    @Transactional
+    public List<GetAllCreditCardResponse.CreditCardInfo> getCreditCards(String userUUID) {
+        User user = userService.getById(userUUID);
+
+        var allCard = creditCardRepository.findAllByUser(user);
+
+        var crediCards = allCard.stream().map(
+                card -> new GetAllCreditCardResponse.CreditCardInfo(
+                        card.getCardNumber(),
+                        card.getIBAN(),
+                        card.getExpiryDate(),
+                        card.getBalance().getLoan()
+                )).collect(Collectors.toList());
+
+        return crediCards;
+    }
 
     @Transactional
     public Contract attachCredit(String userUUID, AttachCreditRequest req) {
 
         User user = userService.getById(userUUID);
-        CreditCard card = cardRepo.findByCardNumberAndUser(req.getCardNumber(), userUUID)
-                .orElseThrow(() -> new IllegalArgumentException("Card not found"));
 
-        card.set(card.getLoan().add(req.getCreditAmount()));
-        cardRepo.save(card);
+        CreditCard creditCard = createCreditCard(userUUID, CreateCreditCardRequest.builder()
+                .cardType(req.getCardType())
+                .currency(req.getCurrencyType())
+                .build());
 
-        byte[] pdf = buildCreditPdf(user, card, req);
+        creditCard.set(creditCard.getLoan().add(req.getCreditAmount()));
+        cardRepo.save(creditCard);
+
+        byte[] pdf = buildCreditPdf(user, creditCard, req);
         Contract contract = uploadPdfAndCreateContract(user, "credit-", pdf);
         return contractRepo.save(contract);
     }
@@ -96,7 +153,7 @@ public class CreditCardService {
             var bold = PdfFontFactory.createFont(StandardFonts.TIMES_BOLD);
 
             PdfDocument pdf = new PdfDocument(new PdfWriter(out));
-            Document doc   = new Document(pdf, PageSize.A4);
+            Document doc = new Document(pdf, PageSize.A4);
             doc.setMargins(60, 60, 60, 60);
 
             doc.add(new Paragraph("Finostra")
@@ -111,11 +168,11 @@ public class CreditCardService {
                     .useAllAvailableWidth().setBorder(Border.NO_BORDER)
                     .setFont(body).setFontSize(11);
 
-            addRow(t, "Borrower:",     u.getUsername());
-            addRow(t, "Card number:",  c.getCardNumber());
-            addRow(t, "Amount:",       r.getCreditAmount() + " UAH");
-            addRow(t, "Term:",         r.getMonths() + " months");
-            addRow(t, "Interest rate:",r.getPercentage() + " %");
+            addRow(t, "Borrower:", getBorrower(u));
+            addRow(t, "Card number:", c.getCardNumber());
+            addRow(t, "Amount:", r.getCreditAmount() + " UAH");
+            addRow(t, "Term:", r.getMonths() + " months");
+            addRow(t, "Interest rate:", r.getPercentage() + " %");
             doc.add(t);
 
             doc.add(signBlock("(Authorised signature)", body));
@@ -135,7 +192,7 @@ public class CreditCardService {
             var bold = PdfFontFactory.createFont(StandardFonts.TIMES_BOLD);
 
             PdfDocument pdf = new PdfDocument(new PdfWriter(out));
-            Document doc   = new Document(pdf, PageSize.A4);
+            Document doc = new Document(pdf, PageSize.A4);
             doc.setMargins(60, 60, 60, 60);
 
             doc.add(new Paragraph("Finostra")
@@ -150,13 +207,13 @@ public class CreditCardService {
                     .useAllAvailableWidth().setBorder(Border.NO_BORDER)
                     .setFont(body).setFontSize(11);
 
-            addRow(t, "Applicant:",        u.getUsername());
-            addRow(t, "Car price:",        r.getCarPrice() + " UAH");
-            addRow(t, "Down payment:",     r.getUserRate() + " UAH");
-            addRow(t, "Car type:",         String.valueOf(r.getCarType()));
-            addRow(t, "Loan term:",        r.getYears() + " years");
-            addRow(t, "Monthly payment:",  r.getMonthlyPayment() + " UAH");
-            addRow(t, "Interest rate:",    r.getCreditPercentage() + " %");
+            addRow(t, "Applicant:", getBorrower(u));
+            addRow(t, "Car price:", r.getCarPrice() + " UAH");
+            addRow(t, "Down payment:", r.getUserRate() + " UAH");
+            addRow(t, "Car type:", String.valueOf(r.getCarType()));
+            addRow(t, "Loan term:", r.getYears() + " years");
+            addRow(t, "Monthly payment:", r.getMonthlyPayment() + " UAH");
+            addRow(t, "Interest rate:", r.getCreditPercentage() + " %");
             doc.add(t);
 
             doc.add(signBlock("(Applicant signature)", body));
@@ -208,5 +265,17 @@ public class CreditCardService {
         contract.setCreatedAt(OffsetDateTime.now());
 
         return contract;
+    }
+
+    private String getBorrower(User u) {
+        String borrower = u.getUsername();
+        UserProfile profile = u.getUserProfile();
+        if (profile != null) {
+            String firstName = profile.getFirstNameEn().substring(0, 1).toUpperCase() + profile.getFirstNameEn().substring(1).toLowerCase();
+            String lastName = profile.getLastNameEn().substring(0, 1).toUpperCase() + profile.getLastNameEn().substring(1).toLowerCase();
+            String patronymic = profile.getPatronymicEn().substring(0, 1).toUpperCase() + profile.getPatronymicEn().substring(1).toLowerCase();
+            borrower = String.format("%s %s %s", firstName, lastName, patronymic);
+        }
+        return borrower;
     }
 }

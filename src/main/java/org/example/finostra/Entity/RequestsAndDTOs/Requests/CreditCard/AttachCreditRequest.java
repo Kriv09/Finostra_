@@ -3,6 +3,8 @@ package org.example.finostra.Entity.RequestsAndDTOs.Requests.CreditCard;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.example.finostra.Entity.User.CreditCard.CurrencyType;
+import org.example.finostra.Utils.BankCards.CardType;
 
 import java.math.BigDecimal;
 
@@ -13,5 +15,7 @@ public class AttachCreditRequest {
     private Integer    months;
     private Double     percentage;
     private Double     perMonthPayAmount;
-    private String     cardNumber;
+
+    private CardType cardType;
+    private CurrencyType currencyType;
 }
